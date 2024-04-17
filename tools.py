@@ -2,20 +2,21 @@
 import pandas as pd
 import os
 import pickle
+from typing import Annotated
 
-def get_subject_info(file_name: str, subject: str, feature: str)->str:
+def get_subject_info(file_name: Annotated[str, "The name of the csv file that contains all data."], 
+                     subject: Annotated[str, "The name of the subject to extract information for."], 
+                     feature: Annotated[str, "The name of the column in the data to extract information for."])->str:
     """
     Use this function to extract information of a particular feature column for a specific subject from a csv file.
-    file_name is the name of the csv file that contains all data.
-    subject is the name of the subject to extract information for.
-    feature is the name of the column in the data to extract information for.
     """
     df = pd.read_csv(os.path.join("data",file_name))
     subject_line = df.loc[df['Name']==subject]
     subject_feature = subject_line[feature].values[0]
     return f"The {feature} for {subject} is {subject_feature}."
 
-def make_price_prediction(file_name: str, subject: str)->str:
+def make_price_prediction(file_name: Annotated[str, "The name of the csv file that contains all data."], 
+                          subject: Annotated[str, "The name of the subject to extract information for."])->str:
     """
     Use this function to predict the price of the given subject using a trained machine learning model.
     file_name is the name of the csv file that contains all data.
