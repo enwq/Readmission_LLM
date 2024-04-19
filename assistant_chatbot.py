@@ -22,12 +22,14 @@ function_dispatch_table = {
 
 def get_response(user_input):
      
+    # Create the message
     client.beta.threads.messages.create(
         thread_id=thread.id,
         role="user",
         content=user_input
     )
-     
+    
+    # Start running
     run = client.beta.threads.runs.create_and_poll(
         thread_id=thread.id,
         assistant_id=assistant.id,
@@ -41,6 +43,7 @@ def get_response(user_input):
         for tool in run.required_action.submit_tool_outputs.tool_calls:
             tool_name = tool.function.name
             tool_args = json.loads(tool.function.arguments)
+            # Execute the corresponding function and add the returned results
             func = function_dispatch_table.get(tool_name)
             if func:
                 result = func(**tool_args)
@@ -58,24 +61,32 @@ def get_response(user_input):
                 )
             except Exception as e:
                 print("Failed to submit tool outputs:", e)
+
+    # Get the response messages
     if run.status == 'completed':
         messages = client.beta.threads.messages.list(thread_id=thread.id)  
             
     return messages.data[0].content[0].text.value
 
+# Default to empty text for user input
 if "user_input" not in st.session_state:
     st.session_state.user_input = ""
 
+# Action when user enters text
 def submit():
    st.session_state.user_input = st.session_state.query
    st.session_state.query = ""
 
 st.title("Chatbot")
+
+# Text input box 
 st.text_input("Enter text:",key="query",on_change=submit)
 
+# Displays user input
 user_input = st.session_state.user_input
 st.write("Your input:",user_input)
 
+# Generate response for user input
 if user_input:
     result = get_response(user_input)
     st.header("Assistant")
