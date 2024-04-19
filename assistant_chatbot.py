@@ -1,5 +1,6 @@
 import streamlit as st
-from openai import OpenAI
+from openai import AzureOpenAI
+import os
 from tools import get_subject_info,make_price_prediction,compute_prediction_change
 import json
 
@@ -7,8 +8,12 @@ st.set_page_config(layout="wide")
 @st.cache_resource
 def setup():
     # Initialize the client
-    client = OpenAI(api_key="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")
-    assistant = client.beta.assistants.retrieve("asst_aZ3KpyrUv9uRcr69MMWiDEBj")
+    client = AzureOpenAI(
+    api_key=os.getenv("AZURE_OPENAI_API_KEY"),  
+    api_version="2024-02-15-preview",
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    )
+    assistant = client.beta.assistants.retrieve("asst_57VwVTE6NIzOSL437r2mH6AF")
     thread = client.beta.threads.create()
     return client,assistant,thread
 
@@ -34,7 +39,7 @@ def get_response(user_input):
         thread_id=thread.id,
         assistant_id=assistant.id,
     )
-    
+    print(run)
     # Define the list to store tool outputs
     tool_outputs = []
     
@@ -65,8 +70,10 @@ def get_response(user_input):
     # Get the response messages
     if run.status == 'completed':
         messages = client.beta.threads.messages.list(thread_id=thread.id)  
-            
-    return messages.data[0].content[0].text.value
+        output = messages.data[0].content[0].text.value
+    else:
+        output = "Failed to generate response."
+    return output
 
 # Default to empty text for user input
 if "user_input" not in st.session_state:
