@@ -39,7 +39,7 @@ def get_response(user_input):
         thread_id=thread.id,
         assistant_id=assistant.id,
     )
-    print(run)
+
     # Define the list to store tool outputs
     tool_outputs = []
     
