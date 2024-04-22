@@ -10,8 +10,8 @@ client = AzureOpenAI(
 
 # Define tools
 tools = [{'type': 'function',
-  'function': {'description':   """
-    A function to extract information of a particular feature column for a hospital admission specified by its ID from a csv data file.
+  'function': {'description': """
+    Extracts information and provides desciptions for a list of feature columns for a hospital admission specified by its ID from a csv data file.
     Descriptions of all possible features to extract are provided below.
     'LOS' is the total length of stay.
     'blood' equals to 1 if the patient is diagnosed with blood and blood-forming organs diseases.
@@ -28,9 +28,9 @@ tools = [{'type': 'function',
     'nervous' equals to 1 if the patient is diagnosed with nervous system and sense organs diseases.
     'respiratory' equals to 1 if the patient is diagnosed with respiratory system diseases.
     'skin' equals to 1 if the patient is diagnosed with skin and subcutaneous tissue diseases.
-    'supp1' equals to 1 if the patient satisfies supplementary classification of external causes of injury and poisoning.
-    'supp2' equals to 1 if the patient satisfies supplementary classification of factors influencing health status and contact with health services.
-    'symtoms_signs' equals to 1 if the patient shows symptoms, signs and ill-defined conditions.
+    'supp1' equals to 1 if the patient is diagnosed with supplementary classification of external causes of injury and poisoning.
+    'supp2' equals to 1 if the patient is diagnosed with supplementary classification of factors influencing health status and contact with health services.
+    'symptoms_signs' equals to 1 if the patient shows symptoms, signs and ill-defined conditions.
     'GENDER' equals to 1 if the patient is male.
     'age' is the age of the admitted patient.
     'ICU' equals to 1 if the patient is admitted to the ICU.
@@ -55,13 +55,22 @@ tools = [{'type': 'function',
     'Readmission' equals to 1 if the patient was readmitted within 30 days.
     """,
    'name': 'get_admission_info',
-   'parameters': {'type': 'object',
-    'properties': {
-     'admission_id': {'type': 'integer',
-      'description': 'The ID of the hospital admission to extract information for.'},
-     'feature': {'type': 'string',
-      'description': 'Name of the feature to extract information for the admission.'}},
-    'required': ['admission_id', 'feature']}}},
+   'parameters': {
+      'type': 'object',
+      'properties': {
+        'admission_id': {
+            'type': 'integer',
+            'description': 'The ID of the hospital admission to extract information for.'
+        },
+        'feature_lst': {
+            'type': 'array',
+            'items': {
+              'type':'string'
+            },
+            'description': 'A list of feature columns to extract information for the admission.'
+        }
+      },
+    'required': ['admission_id', 'feature_lst']}}}
  ]
 
 # Create assistant

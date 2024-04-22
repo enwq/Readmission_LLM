@@ -5,9 +5,9 @@ import pickle
 from typing import Annotated
 
 def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admission to extract information for."], 
-                     feature: Annotated[str, "Name of the feature to extract information for the admission."])->str:
+                     feature_lst: Annotated[list[str], "A list of feature columns to extract information for the admission."])->str:
     """
-    A function to extract information of a particular feature column for a hospital admission specified by its ID from a csv data file.
+    Extracts information and provides desciptions for a list of feature columns for a hospital admission specified by its ID from a csv data file.
     Descriptions of all possible features to extract are provided below.
     'LOS' is the total length of stay.
     'blood' equals to 1 if the patient is diagnosed with blood and blood-forming organs diseases.
@@ -24,9 +24,9 @@ def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admi
     'nervous' equals to 1 if the patient is diagnosed with nervous system and sense organs diseases.
     'respiratory' equals to 1 if the patient is diagnosed with respiratory system diseases.
     'skin' equals to 1 if the patient is diagnosed with skin and subcutaneous tissue diseases.
-    'supp1' equals to 1 if the patient satisfies supplementary classification of external causes of injury and poisoning.
-    'supp2' equals to 1 if the patient satisfies supplementary classification of factors influencing health status and contact with health services.
-    'symtoms_signs' equals to 1 if the patient shows symptoms, signs and ill-defined conditions.
+    'supp1' equals to 1 if the patient is diagnosed with supplementary classification of external causes of injury and poisoning.
+    'supp2' equals to 1 if the patient is diagnosed with supplementary classification of factors influencing health status and contact with health services.
+    'symptoms_signs' equals to 1 if the patient shows symptoms, signs and ill-defined conditions.
     'GENDER' equals to 1 if the patient is male.
     'age' is the age of the admitted patient.
     'ICU' equals to 1 if the patient is admitted to the ICU.
@@ -66,8 +66,8 @@ def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admi
         'nervous': "equals to 1 if the patient is diagnosed with nervous system and sense organs diseases",
         'respiratory': "equals to 1 if the patient is diagnosed with respiratory system diseases",
         'skin': "equals to 1 if the patient is diagnosed with skin and subcutaneous tissue diseases",
-        'supp1': "equals to 1 if the patient satisfies supplementary classification of external causes of injury and poisoning",
-        'supp2': "equals to 1 if the patient satisfies supplementary classification of factors influencing health status and contact with health services",
+        'supp1': "equals to 1 if the patient is diagnosed with supplementary classification of external causes of injury and poisoning",
+        'supp2': "equals to 1 if the patient is diagnosed with supplementary classification of factors influencing health status and contact with health services",
         'symptoms_signs': "equals to 1 if the patient shows symptoms, signs and ill-defined conditions",
         'GENDER': "equals to 1 if the patient is male",
         'age': "represents the age of the admitted patient",
@@ -94,8 +94,11 @@ def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admi
     }
 
     df = pd.read_csv("data/Testing_Data.csv",index_col=0)
-    admission_feature = df.loc[df.index==admission_id,feature].astype(float).values[0]
-    return f"The {feature} for admission {admission_id} is {admission_feature}. This feature {feature_description_dict}."
+    output_str = ""
+    for feature in feature_lst:
+        admission_feature = df.loc[df.index==admission_id,feature].astype(float).values[0]
+        output_str+= f"The {feature} for admission {admission_id} is {admission_feature}. This feature {feature_description_dict[feature]}.\n"
+    return output_str
 
 def prepare_model_input(file_name,subject):
     """
