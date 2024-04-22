@@ -7,7 +7,7 @@ from typing import Annotated
 def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admission to extract information for."], 
                      feature_lst: Annotated[list[str], "A list of feature columns to extract information for the admission."])->str:
     """
-    Extracts information and provides desciptions for a list of feature columns for a hospital admission specified by its ID from a csv data file.
+    Extracts information and provides descriptions for a list of feature columns for a hospital admission specified by its ID from a csv data file.
     Descriptions of all possible features to extract are provided below.
     'LOS' is the total length of stay.
     'blood' equals to 1 if the patient is diagnosed with blood and blood-forming organs diseases.
@@ -26,7 +26,7 @@ def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admi
     'skin' equals to 1 if the patient is diagnosed with skin and subcutaneous tissue diseases.
     'supp1' equals to 1 if the patient is diagnosed with supplementary classification of external causes of injury and poisoning.
     'supp2' equals to 1 if the patient is diagnosed with supplementary classification of factors influencing health status and contact with health services.
-    'symptoms_signs' equals to 1 if the patient shows symptoms, signs and ill-defined conditions.
+    'symptoms_signs' equals to 1 if the patient is diagnosed with symptoms, signs and ill-defined conditions.
     'GENDER' equals to 1 if the patient is male.
     'age' is the age of the admitted patient.
     'ICU' equals to 1 if the patient is admitted to the ICU.
@@ -68,7 +68,7 @@ def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admi
         'skin': "equals to 1 if the patient is diagnosed with skin and subcutaneous tissue diseases",
         'supp1': "equals to 1 if the patient is diagnosed with supplementary classification of external causes of injury and poisoning",
         'supp2': "equals to 1 if the patient is diagnosed with supplementary classification of factors influencing health status and contact with health services",
-        'symptoms_signs': "equals to 1 if the patient shows symptoms, signs and ill-defined conditions",
+        'symptoms_signs': "equals to 1 if the patient is diagnosed with symptoms, signs and ill-defined conditions",
         'GENDER': "equals to 1 if the patient is male",
         'age': "represents the age of the admitted patient",
         'ICU': "equals to 1 if the patient is admitted to the ICU",

@@ -13,7 +13,7 @@ def setup():
     api_version="2024-02-15-preview",
     azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     )
-    assistant = client.beta.assistants.retrieve("asst_54Gag3VQviHVRe7X6ad6LlGs")
+    assistant = client.beta.assistants.retrieve("asst_eaQbxpHECOvvQwehqM5EYB2R")
     thread = client.beta.threads.create()
     return client,assistant,thread
 
