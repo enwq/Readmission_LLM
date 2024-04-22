@@ -1,7 +1,7 @@
 import streamlit as st
 from openai import AzureOpenAI
 import os
-from tools import get_subject_info,make_price_prediction,compute_prediction_change
+from tools import get_admission_info,make_price_prediction,compute_prediction_change
 import json
 
 st.set_page_config(layout="wide")
@@ -13,14 +13,14 @@ def setup():
     api_version="2024-02-15-preview",
     azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     )
-    assistant = client.beta.assistants.retrieve("asst_57VwVTE6NIzOSL437r2mH6AF")
+    assistant = client.beta.assistants.retrieve("asst_aruwK5zBRU5opqeWb2xvetyc")
     thread = client.beta.threads.create()
     return client,assistant,thread
 
 client,assistant,thread = setup()
 
 function_dispatch_table = {
-        "get_subject_info": get_subject_info,
+        "get_admission_info": get_admission_info,
         "make_price_prediction": make_price_prediction,
         "compute_prediction_change": compute_prediction_change
 }

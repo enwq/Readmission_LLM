@@ -1,20 +1,101 @@
-# Python file of all tools that can be executed by the agents
+# Python file of all tools that can be executed by the assistant
 import pandas as pd
 import os
 import pickle
 from typing import Annotated
-from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 
-def get_subject_info(file_name: Annotated[str, "The name of the csv file that contains all data."], 
-                     subject: Annotated[str, "The name of the subject to extract information for."], 
-                     feature: Annotated[str, "The name of the column in the data to extract information for."])->str:
+def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admission to extract information for."], 
+                     feature: Annotated[str, "Name of the feature to extract information for the admission."])->str:
     """
-    A function to extract information of a particular feature column for a specific subject from a csv file.
+    A function to extract information of a particular feature column for a hospital admission specified by its ID from a csv data file.
+    Descriptions of all possible features to extract are provided below.
+    'LOS' is the total length of stay.
+    'blood' equals to 1 if the patient is diagnosed with blood and blood-forming organs diseases.
+    'circulatory' equals to 1 if the patient is diagnosed with circulatory system diseases.
+    'congenital' equals to 1 if the patient is diagnosed with congenital anomalies.
+    'digestive' equals to 1 if the patient is diagnosed with digestive system diseases.
+    'endocrine' equals to 1 if the patient is diagnosed with endocrine, nutritional and metabolic diseases, and immunity disorders.
+    'genitourinary' equals to 1 if the patient is diagnosed with henitourinary system diseases.
+    'infectious' equals to 1 if the patient is diagnosed with infectious and parasitic diseases.
+    'injury' equals to 1 if the patient is diagnosed with injury and poisoning.
+    'mental' equals to 1 if the patient is diagnosed with mental disorders.
+    'muscular' equals to 1 if the patient is diagnosed with musculoskeletal system and connective tissue diseases.
+    'neoplasms' equals to 1 if the patient is diagnosed with neoplasms.
+    'nervous' equals to 1 if the patient is diagnosed with nervous system and sense organs diseases.
+    'respiratory' equals to 1 if the patient is diagnosed with respiratory system diseases.
+    'skin' equals to 1 if the patient is diagnosed with skin and subcutaneous tissue diseases.
+    'supp1' equals to 1 if the patient satisfies supplementary classification of external causes of injury and poisoning.
+    'supp2' equals to 1 if the patient satisfies supplementary classification of factors influencing health status and contact with health services.
+    'symtoms_signs' equals to 1 if the patient shows symptoms, signs and ill-defined conditions.
+    'GENDER' equals to 1 if the patient is male.
+    'age' is the age of the admitted patient.
+    'ICU' equals to 1 if the patient is admitted to the ICU.
+    'ICU_LOS' is the total length of stay in ICU.
+    'ADM_ELECTIVE' equals to 1 if this admission is elective.
+    'ADM_EMERGENCY' equals to 1 if this admission is emergency.
+    'ADM_URGENT' equals to 1 if this admission is urgent.
+    'INS_Government' equals to 1 if the insurance of this admission is government.
+    'INS_Medicaid' equals to 1 if the insurance of this admission is Medicaid.
+    'INS_Medicare' equals to 1 if the insurance of this admission is Medicare.
+    'INS_Private' equals to 1 if the insurance of this admission is private.
+    'INS_Self Pay' equals to 1 if the insurance of this admission is self pay.
+    'ETH_ASIAN' equals to 1 if the admitted patient is Asian.
+    'ETH_BLACK/AFRICAN AMERICAN' equals to 1 if the admitted patient is Black/African American.
+    'ETH_HISPANIC/LATINO' equals to 1 if the admitted patient is Hispanic/Latino.
+    'ETH_OTHER/UNKNOWN' equals to 1 if ethinicity of the admitted patient is Other/Unknown.
+    'ETH_WHITE' equals to 1 if the admitted patient is White.
+    'MAR_MARRIED' equals to 1 if the admitted paitent is married.
+    'MAR_SINGLE' equals to 1 if the admitted paitent is single.
+    'MAR_UNKNOWN (DEFAULT)' equals to 1 if marital status of the admitted paitent is unknown.
+    'MAR_WDS' equals to 1 if the admitted paitent is widowed, divorced, or seperated.
+    'Readmission' equals to 1 if the patient was readmitted within 30 days.
     """
-    df = pd.read_csv(os.path.join("data",file_name))
-    subject_line = df.loc[df['Name']==subject]
-    subject_feature = subject_line[feature].values[0]
-    return f"The {feature} for {subject} is {subject_feature}."
+    feature_description_dict = {
+        'LOS': "represents the total length of stay",
+        'blood': "equals to 1 if the patient is diagnosed with blood and blood-forming organs diseases",
+        'circulatory': "equals to 1 if the patient is diagnosed with circulatory system diseases",
+        'congenital': "equals to 1 if the patient is diagnosed with congenital anomalies",
+        'digestive': "equals to 1 if the patient is diagnosed with digestive system diseases",
+        'endocrine': "equals to 1 if the patient is diagnosed with endocrine, nutritional and metabolic diseases, and immunity disorders",
+        'genitourinary': "equals to 1 if the patient is diagnosed with henitourinary system diseases",
+        'infectious': "equals to 1 if the patient is diagnosed with infectious and parasitic diseases",
+        'injury': "equals to 1 if the patient is diagnosed with injury and poisoning",
+        'mental': "equals to 1 if the patient is diagnosed with mental disorders",
+        'muscular': "equals to 1 if the patient is diagnosed with musculoskeletal system and connective tissue diseases",
+        'neoplasms': "equals to 1 if the patient is diagnosed with neoplasms",
+        'nervous': "equals to 1 if the patient is diagnosed with nervous system and sense organs diseases",
+        'respiratory': "equals to 1 if the patient is diagnosed with respiratory system diseases",
+        'skin': "equals to 1 if the patient is diagnosed with skin and subcutaneous tissue diseases",
+        'supp1': "equals to 1 if the patient satisfies supplementary classification of external causes of injury and poisoning",
+        'supp2': "equals to 1 if the patient satisfies supplementary classification of factors influencing health status and contact with health services",
+        'symptoms_signs': "equals to 1 if the patient shows symptoms, signs and ill-defined conditions",
+        'GENDER': "equals to 1 if the patient is male",
+        'age': "represents the age of the admitted patient",
+        'ICU': "equals to 1 if the patient is admitted to the ICU",
+        'ICU_LOS': "represents the total length of stay in ICU",
+        'ADM_ELECTIVE': "equals to 1 if this admission is elective",
+        'ADM_EMERGENCY': "equals to 1 if this admission is emergency",
+        'ADM_URGENT': "equals to 1 if this admission is urgent",
+        'INS_Government': "equals to 1 if the insurance of this admission is government",
+        'INS_Medicaid': "equals to 1 if the insurance of this admission is Medicaid",
+        'INS_Medicare': "equals to 1 if the insurance of this admission is Medicare",
+        'INS_Private': "equals to 1 if the insurance of this admission is private",
+        'INS_Self Pay': "equals to 1 if the insurance of this admission is self pay",
+        'ETH_ASIAN': "equals to 1 if the admitted patient is Asian",
+        'ETH_BLACK/AFRICAN AMERICAN': "equals to 1 if the admitted patient is Black/African American",
+        'ETH_HISPANIC/LATINO': "equals to 1 if the admitted patient is Hispanic/Latino",
+        'ETH_OTHER/UNKNOWN': "equals to 1 if ethnicity of the admitted patient is Other/Unknown",
+        'ETH_WHITE': "equals to 1 if the admitted patient is White",
+        'MAR_MARRIED': "equals to 1 if the admitted patient is married",
+        'MAR_SINGLE': "equals to 1 if the admitted patient is single",
+        'MAR_UNKNOWN (DEFAULT)': "equals to 1 if marital status of the admitted patient is unknown",
+        'MAR_WDS': "equals to 1 if the admitted patient is widowed, divorced, or separated",
+        'Readmission': "equals to 1 if the patient was readmitted within 30 days"
+    }
+
+    df = pd.read_csv("data/Testing_Data.csv",index_col=0)
+    admission_feature = df.loc[df.index==admission_id,feature].astype(float).values[0]
+    return f"The {feature} for admission {admission_id} is {admission_feature}. This feature {feature_description_dict}."
 
 def prepare_model_input(file_name,subject):
     """
@@ -59,39 +140,3 @@ def compute_prediction_change(file_name: Annotated[str, "The name of the csv fil
     subject_data[feature] = new_feature
     new_predicted = model.predict(subject_data.to_numpy())[0]
     return f"When the feature {feature} of {subject} changes by {change} from {original_feature} to {new_feature}, the predicted value changes from {'%.2f' % (original_predicted)} to {'%.2f' % (new_predicted)} according to the ML model."
-
-def retrieve_content(
-    message: Annotated[
-        str,
-        "Refined message which keeps the original meaning and can be used to retrieve content for question answering by the domain expert.",
-    ],
-) -> str:
-    """
-    Sometimes, there might be a need to use RetrieveUserProxyAgent in group chat without initializing the chat with it. 
-    In such scenarios, it becomes essential to create a function that wraps the RAG agents and allows them to be called from other agents. 
-    See https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_RAG/#call-retrieveuserproxyagent-while-init-chat-with-another-user-proxy-agent
-    """
-    # Initialize the agent
-    document_retriever = RetrieveUserProxyAgent(
-        name="Document_retriever",
-        human_input_mode="NEVER",
-        retrieve_config={
-            "task": "qa",
-            "model": "gpt-3.5-turbo",
-            "docs_path": "rag_docs",
-            "collection_name": "rag_docs_collection",
-            "get_or_create": True
-        },
-        code_execution_config=False,
-        description="Assistant who has extra content retrieval power for answering questions."
-    )
-    # Check if we need to update the context.
-    document_retriever.n_results = 1
-    update_context_case1, update_context_case2 = document_retriever._check_update_context(message)
-    if (update_context_case1 or update_context_case2) and document_retriever.update_context:
-        document_retriever.problem = message if not hasattr(document_retriever, "problem") else document_retriever.problem
-        _, ret_msg = document_retriever._generate_retrieve_user_reply(message)
-    else:
-        _context = {"problem": message, "n_results": 1}
-        ret_msg = document_retriever.message_generator(document_retriever, None, _context)
-    return ret_msg if ret_msg else message
