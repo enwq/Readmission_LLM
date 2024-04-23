@@ -6,7 +6,10 @@ from typing import Annotated
 def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admission to extract information for."], 
                      feature_lst: Annotated[list[str], "A list of feature columns to extract information for the admission."])->str:
     """
-    Extracts information and provides descriptions for a list of feature columns for a hospital admission specified by its ID from a csv data file.
+    This tool extracts information and provides descriptions for a list of feature columns for a hospital admission specified by its ID from a csv data file.
+    The required input parameters are 'admission_id' and 'feature_lst'.
+    'admission_id' is an integer representing the ID of the hospital admission to extract information for.
+    'feature_lst' is a list of strings representing feature columns to extract information for the admission.
     """
     feature_description_dict = {
         'LOS': "represents the total length of stay",
@@ -69,7 +72,9 @@ def prepare_model_input(admission_id):
 
 def make_readmission_prediction(admission_id: Annotated[int, "The ID of the hospital admission to predict readmission probability for."])->str:
     """
-    Uses a trained machine learning model to predict the probability of readmission for a hospital admission specified by its ID based on all feature columns in the data.
+   This tool uses a trained machine learning model to predict the probability of readmission for a hospital admission specified by its ID based on all feature columns in the data.
+   The required input parameter is 'admission_id'.
+   'admission_id' is an integer representing the ID of the hospital admission to predict readmission probability for.
     """
     admission_data = prepare_model_input(admission_id)
     X = admission_data.to_numpy()
@@ -85,9 +90,11 @@ def make_readmission_prediction(admission_id: Annotated[int, "The ID of the hosp
 def make_updated_readmission_prediction(admission_id: Annotated[int, "The ID of the hospital admission to predict the updated readmission probability for."],
                               updated_features: Annotated[dict[str, float], "A python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values."])->str:
     """
-    Uses a trained machine learning model to predict the updated probability of readmission for a hospital admission specified by its ID when some of its feature values change.
-    The parameter 'updated_features' is a python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values.
-    For example, if 'updated_features' is '{'GENDER': 1}', it means the binary feature column 'GENDER' changes to 1 so the gender of the patient in this admission changes from female to male.
+   When some of the feature values of a hospital admission specified by its ID are updated, this tool uses a trained machine learning model to predict the updated probability of readmission.
+   The required input parameters are 'admission_id' and 'updated_features'.
+   'admission_id' is an integer representing the ID of the hospital admission to predict the updated readmission probability for.
+   'updated_features' is a python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values.
+   For example, if 'updated_features' is '{'GENDER': 1}', it means the binary feature column 'GENDER' changes to 1 so the gender of the patient in this admission changes from female to male.
     """
     # Predict with original data
     admission_data = prepare_model_input(admission_id)

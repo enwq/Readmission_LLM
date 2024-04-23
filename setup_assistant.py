@@ -10,7 +10,12 @@ client = AzureOpenAI(
 
 # Define tools
 tools = [{'type': 'function',
-  'function': {'description': 'Extracts information and provides descriptions for a list of feature columns for a hospital admission specified by its ID from a csv data file.',
+  'function': {
+      'description': '''This tool extracts information and provides descriptions for a list of feature columns for a hospital admission specified by its ID from a csv data file.
+      The required input parameters are 'admission_id' and 'feature_lst'.
+      'admission_id' is an integer representing the ID of the hospital admission to extract information for.
+      'feature_lst' is a list of strings representing feature columns to extract information for the admission.
+      ''',    
    'name': 'get_admission_info',
    'parameters': {
       'type': 'object',
@@ -31,7 +36,10 @@ tools = [{'type': 'function',
     'required': ['admission_id', 'feature_lst']}}},
     {'type': 'function',
       'function':{
-        'description': 'Uses a trained machine learning model to predict the probability of readmission for a hospital admission specified by its ID based on all feature columns in the data.',
+        'description': '''This tool uses a trained machine learning model to predict the probability of readmission for a hospital admission specified by its ID based on all feature columns in the data.
+        The required input parameter is 'admission_id'.
+        'admission_id' is an integer representing the ID of the hospital admission to predict readmission probability for.
+        ''',
         'name': 'make_readmission_prediction',
         'parameters':{
             'type':'object',
@@ -47,8 +55,10 @@ tools = [{'type': 'function',
     },
     {'type': 'function',
       'function':{
-        'description': '''Uses a trained machine learning model to predict the updated probability of readmission for a hospital admission specified by its ID when some of its feature values change.
-        The parameter 'updated_features' is a python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values.
+        'description': '''When some of the feature values of a hospital admission specified by its ID are updated, this tool uses a trained machine learning model to predict the updated probability of readmission.
+        The required input parameters are 'admission_id' and 'updated_features'.
+        'admission_id' is an integer representing the ID of the hospital admission to predict the updated readmission probability for.
+        'updated_features' is a python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values.
         For example, if 'updated_features' is '{'GENDER': 1}', it means the binary feature column 'GENDER' changes to 1 so the gender of the patient in this admission changes from female to male.
         ''',
         'name': 'make_updated_readmission_prediction',
@@ -80,9 +90,8 @@ tools = [{'type': 'function',
 
 # Create assistant
 assistant = client.beta.assistants.create(
-  name="Assistant",
-  instructions='''
-  You are a helpful AI assistant for doctors to answer their questions about patient admissions.
+  name="Medical Assistant",
+  instructions='''You are a helpful AI medcical assistant for doctors to answer their questions about patient admissions.
   Hospital admission data is provided in a csv file with the following feature columns.
 
   'LOS' is the total length of stay.
@@ -127,6 +136,7 @@ assistant = client.beta.assistants.create(
   'Readmission' equals to 1 if the patient was readmitted within 30 days and 0 otherwise.
 
   You are provided with a list of tools and you need to select the most appropriate tool to answer doctors' questions.
+  You must specify all required parameters for your selected tool.
   Do not make assumptions about what parameter values to use for these tools. Ask for clarification if the user's request is ambiguous.
   If none of the tools is suitable to answer the given question, answer with your own knowledge.
   ''',
