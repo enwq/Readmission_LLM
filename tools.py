@@ -2,6 +2,9 @@
 import pandas as pd
 import joblib
 from typing import Annotated
+import shap
+import matplotlib.pyplot as plt
+import numpy as np
 
 def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admission to extract information for."], 
                      feature_lst: Annotated[list[str], "A list of feature columns to extract information for the admission."])->str:
@@ -115,4 +118,39 @@ def make_updated_readmission_prediction(admission_id: Annotated[int, "The ID of 
         output += f"As a result, the predicted readmission probability changes from {'%.2f' % (predicted_prob_old)} to {'%.2f' % (predicted_prob_new)}, so the patient will likely be readmitted within 30 days."
     else:
         output += f"As a result, the predicted readmission probability changes from {'%.2f' % (predicted_prob_old)} to {'%.2f' % (predicted_prob_new)}, so the patient will not likely be readmitted within 30 days."
+    return output
+
+def compute_and_plot_shap_global_feature_importance():
+    """
+    This tool uses the SHAP (SHapley Additive exPlanations) algorithm to identify the 10 most important features used by a trained machine learning model for readmission prediction considering all available admission records from the data.
+    It then generates a bar plot for the feature importance values of the identified features.
+    """
+    # Load the data
+    df = pd.read_csv("data/Testing_Data.csv",index_col=0)
+    feature_names = df.columns[:-1]
+    X = df[feature_names].astype(float).to_numpy()
+    # Load the model
+    with open('data/lgb.pkl', 'rb') as f:
+        model = joblib.load(f)
+    # Get SHAP explainer
+    explainer = shap.Explainer(model)
+    # Compute SHAP values
+    shap_values = explainer(X)
+    shap_values.feature_names = feature_names
+    # Save the SHAP values in a dataframe
+    shap_mean_abs = np.abs(shap_values.values).mean(0)
+    shap_values_df = pd.DataFrame(shap_mean_abs,columns=["mean(|SHAP value|)"])
+    shap_values_df['feature'] = feature_names
+    shap_values_df.sort_values('mean(|SHAP value|)',ascending=False,inplace=True,ignore_index=True)
+    # Get the top 9 most important features + combined shap values from the remaining features
+    top_9_feature_names = shap_values_df['feature'].values[:9]
+    top_9_shape_values = shap_values_df['mean(|SHAP value|)'].values[:9]
+    formatted_values = [float('%.3f' % (num)) for num in top_9_shape_values]
+    output = f"According to the SHAP (SHapley Additive exPlanations) algorithm, the top 9 most important features for readmission prediction are {top_9_feature_names}, with effects of {formatted_values} respectively.\n"
+    remaining_shap_sum = np.sum(shap_values_df['mean(|SHAP value|)'].values[9:])
+    output += f"The remaining {len(feature_names)-9} features show a combined effect of {'%.3f' % (remaining_shap_sum)} for readmission prediction."
+    # Generate and save the bar plot
+    shap.plots.bar(shap_values, max_display=10,show=False)
+    plt.title('Top 10 most important features')
+    plt.savefig('plot/global_top_10_features.png', bbox_inches = 'tight')
     return output

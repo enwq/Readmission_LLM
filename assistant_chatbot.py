@@ -1,7 +1,7 @@
 import streamlit as st
 from openai import AzureOpenAI
 import os
-from tools import get_admission_info,make_readmission_prediction,make_updated_readmission_prediction
+from tools import get_admission_info,make_readmission_prediction,make_updated_readmission_prediction,compute_and_plot_shap_global_feature_importance
 import json
 
 st.set_page_config(layout="wide")
@@ -13,7 +13,7 @@ def setup():
     api_version="2024-02-15-preview",
     azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     )
-    assistant = client.beta.assistants.retrieve("asst_o75myByyWWb45h3zS8HTzmp9")
+    assistant = client.beta.assistants.retrieve("asst_SAHhfN6qoaZJvefq3AYrrO08")
     thread = client.beta.threads.create()
     return client,assistant,thread
 
@@ -22,7 +22,8 @@ client,assistant,thread = setup()
 function_dispatch_table = {
         "get_admission_info": get_admission_info,
         "make_readmission_prediction": make_readmission_prediction,
-        "make_updated_readmission_prediction": make_updated_readmission_prediction
+        "make_updated_readmission_prediction": make_updated_readmission_prediction,
+        "compute_and_plot_shap_global_feature_importance":compute_and_plot_shap_global_feature_importance
 }
 
 def get_response(user_input):
@@ -42,7 +43,10 @@ def get_response(user_input):
 
     # Define the list to store tool outputs
     tool_outputs = []
-    
+
+    # Define the image to display
+    image_to_display = None
+
     # Loop through each tool in the required action section
     if run.status == 'requires_action':
         for tool in run.required_action.submit_tool_outputs.tool_calls:
@@ -55,6 +59,9 @@ def get_response(user_input):
             if func:
                 result = func(**tool_args)
                 tool_outputs.append({"tool_call_id": tool.id, "output": result})
+                # Get the global feature importance plot
+                if tool_name == "compute_and_plot_shap_global_feature_importance":
+                    image_to_display = 'plot/global_top_10_features.png'
             else:
                 print(f"Function {tool_name} not found.")
         
@@ -75,7 +82,7 @@ def get_response(user_input):
         output = messages.data[0].content[0].text.value
     else:
         output = "Failed to generate response."
-    return output
+    return output,image_to_display
 
 # Default to empty text for user input
 if "user_input" not in st.session_state:
@@ -97,6 +104,8 @@ st.write("Your input:",user_input)
 
 # Generate response for user input
 if user_input:
-    result = get_response(user_input)
+    result,image_to_display = get_response(user_input)
     st.header("Assistant")
     st.text(result)
+    if image_to_display:
+        st.image(image_to_display)

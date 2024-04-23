@@ -85,7 +85,22 @@ tools = [{'type': 'function',
             'required':['admission_id','updated_features']
         }
       }
+    },
+    {'type': 'function',
+      'function':{
+        'description': '''This tool uses the SHAP (SHapley Additive exPlanations) algorithm to identify the 10 most important features used by a trained machine learning model for readmission prediction considering all available admission records from the data.
+        It then generates a bar plot for the feature importance values of the identified features.
+        This tool does not require any input parameter.
+        ''',
+        'name': 'compute_and_plot_shap_global_feature_importance',
+        'parameters':{
+            'type':'object',
+            'properties':{},
+            'required':[]
+        }
+      }
     }
+
  ]
 
 # Create assistant
