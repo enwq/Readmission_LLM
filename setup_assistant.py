@@ -10,9 +10,7 @@ client = AzureOpenAI(
 
 # Define tools
 tools = [{'type': 'function',
-  'function': {'description': """
-    Extracts information and provides descriptions for a list of feature columns for a hospital admission specified by its ID from a csv data file.
-    """,
+  'function': {'description': 'Extracts information and provides descriptions for a list of feature columns for a hospital admission specified by its ID from a csv data file.',
    'name': 'get_admission_info',
    'parameters': {
       'type': 'object',
@@ -24,12 +22,60 @@ tools = [{'type': 'function',
         'feature_lst': {
             'type': 'array',
             'items': {
-              'type':'string'
+              'type':'string',
+              'description':'Name of a feature column.'
             },
             'description': 'A list of feature columns to extract information for the admission.'
         }
       },
-    'required': ['admission_id', 'feature_lst']}}}
+    'required': ['admission_id', 'feature_lst']}}},
+    {'type': 'function',
+      'function':{
+        'description': 'Uses a trained machine learning model to predict the probability of readmission for a hospital admission specified by its ID based on all feature columns in the data.',
+        'name': 'make_readmission_prediction',
+        'parameters':{
+            'type':'object',
+            'properties':{
+                'admission_id':{
+                    'type':'integer',
+                    'description':'The ID of the hospital admission to predict readmission probability for.'
+                }
+            },
+            'required':['admission_id']
+        }
+      }
+    },
+    {'type': 'function',
+      'function':{
+        'description': '''Uses a trained machine learning model to predict the updated probability of readmission for a hospital admission specified by its ID when some of its feature values change.
+        The parameter 'updated_features' is a python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values.
+        For example, if 'updated_features' is '{'GENDER': 1}', it means the binary feature column 'GENDER' changes to 1 so the gender of the patient in this admission changes from female to male.
+        ''',
+        'name': 'make_updated_readmission_prediction',
+        'parameters':{
+            'type':'object',
+            'properties':{
+                'admission_id':{
+                    'type':'integer',
+                    'description':'The ID of the hospital admission to predict the updated readmission probability for.'
+                },
+                'updated_features':{
+                    'type':'object',
+                    'propertyNames':{
+                        'type':'string',
+                        'description':'Name of the feature to update value for.'
+                    },
+                    'additionalProperties':{
+                        'type':'number',
+                        'description':'Updated value for the feature.'
+                    },
+                    'description':'A python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values.'
+                }
+            },
+            'required':['admission_id','updated_features']
+        }
+      }
+    }
  ]
 
 # Create assistant
@@ -81,6 +127,7 @@ assistant = client.beta.assistants.create(
   'Readmission' equals to 1 if the patient was readmitted within 30 days and 0 otherwise.
 
   You are provided with a list of tools and you need to select the most appropriate tool to answer doctors' questions.
+  Do not make assumptions about what parameter values to use for these tools. Ask for clarification if the user's request is ambiguous.
   If none of the tools is suitable to answer the given question, answer with your own knowledge.
   ''',
   tools=tools,

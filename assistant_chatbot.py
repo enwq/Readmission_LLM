@@ -1,7 +1,7 @@
 import streamlit as st
 from openai import AzureOpenAI
 import os
-from tools import get_admission_info,make_price_prediction,compute_prediction_change
+from tools import get_admission_info,make_readmission_prediction,make_updated_readmission_prediction
 import json
 
 st.set_page_config(layout="wide")
@@ -13,7 +13,7 @@ def setup():
     api_version="2024-02-15-preview",
     azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     )
-    assistant = client.beta.assistants.retrieve("asst_p4pNuSWE4uYYpPKA9thL6pgO")
+    assistant = client.beta.assistants.retrieve("asst_j67XUySdD3ZnKFtTwArpJWOZ")
     thread = client.beta.threads.create()
     return client,assistant,thread
 
@@ -21,8 +21,8 @@ client,assistant,thread = setup()
 
 function_dispatch_table = {
         "get_admission_info": get_admission_info,
-        "make_price_prediction": make_price_prediction,
-        "compute_prediction_change": compute_prediction_change
+        "make_readmission_prediction": make_readmission_prediction,
+        "make_updated_readmission_prediction": make_updated_readmission_prediction
 }
 
 def get_response(user_input):
@@ -48,6 +48,8 @@ def get_response(user_input):
         for tool in run.required_action.submit_tool_outputs.tool_calls:
             tool_name = tool.function.name
             tool_args = json.loads(tool.function.arguments)
+            print(tool_name)
+            print(tool_args)
             # Execute the corresponding function and add the returned results
             func = function_dispatch_table.get(tool_name)
             if func:

@@ -1,7 +1,6 @@
 # Python file of all tools that can be executed by the assistant
 import pandas as pd
-import os
-import pickle
+import joblib
 from typing import Annotated
 
 def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admission to extract information for."], 
@@ -56,49 +55,57 @@ def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admi
     output_str = ""
     for feature in feature_lst:
         admission_feature = df.loc[df.index==admission_id,feature].astype(float).values[0]
-        output_str+= f"The {feature} for admission {admission_id} is {admission_feature}. This feature {feature_description_dict[feature]}.\n"
+        output_str+= f"The feature '{feature}' for admission {admission_id} is {admission_feature}. This feature {feature_description_dict[feature]}.\n"
     return output_str
 
-def prepare_model_input(file_name,subject):
+def prepare_model_input(admission_id):
     """
-    A helper function to prepare the data from a subject as input to a machine learning model.
-    This function is not registered by the agents.
+    A helper function to prepare the data from an admission as input to the machine learning model for readmission prediction.
+    This function is not registered by the assistant.
     """
-    df = pd.read_csv(os.path.join("data",file_name))
-    features = ['AWD','RWD','Engine Size (l)','Cyl','Horsepower(HP)','City Miles Per Gallon','Highway Miles Per Gallon','Weight','Wheel Base','Len','Width']
-    feature_data = df[features]
-    type_dummy = pd.get_dummies(df['Type']).astype(int)
-    feature_data = pd.concat([feature_data,type_dummy],axis=1)
-    subject_data = feature_data.loc[df['Name']==subject]
-    return subject_data
+    df = pd.read_csv("data/Testing_Data.csv",index_col=0)
+    features = df.loc[df.index==admission_id,df.columns[:-1]].astype(float)
+    return features
 
-def make_price_prediction(file_name: Annotated[str, "The name of the csv file that contains all data."], 
-                          subject: Annotated[str, "The name of the subject to predict price for."])->str:
+def make_readmission_prediction(admission_id: Annotated[int, "The ID of the hospital admission to predict readmission probability for."])->str:
     """
-    A function to predict the price of the given subject using a trained machine learning model.
+    Uses a trained machine learning model to predict the probability of readmission for a hospital admission specified by its ID based on all feature columns in the data.
     """
-    subject_data = prepare_model_input(file_name,subject)
-    X = subject_data.to_numpy()
-    with open('model.pkl', 'rb') as f:
-        model = pickle.load(f)
-    predicted = model.predict(X)[0]
-    return f"The predicted value for {subject} is {'%.2f' % (predicted)} according to the ML model."
+    admission_data = prepare_model_input(admission_id)
+    X = admission_data.to_numpy()
+    with open('data/lgb.pkl', 'rb') as f:
+        model = joblib.load(f)
+    predicted_prob = model.predict_proba(X,verbose=-1)[0][1]
+    if predicted_prob > 0.5:
+        return f"The machine learning model predicts a readmission probability of {'%.2f' % (predicted_prob)} for admission {admission_id}, so the patient will likely be readmitted within 30 days."
+    else:
+        return f"The machine learning model predicts a readmission probability of {'%.2f' % (predicted_prob)} for admission {admission_id}, so the patient will not likely be readmitted within 30 days."
     
 
-def compute_prediction_change(file_name: Annotated[str, "The name of the csv file that contains all data."],
-                              subject: Annotated[str, "The name of the subject to predict price for."],
-                              feature: Annotated[str, "The name of the column in the data that changes."],
-                              change: Annotated[float,"The amount of change for the specific feature column."])->str:
+def make_updated_readmission_prediction(admission_id: Annotated[int, "The ID of the hospital admission to predict the updated readmission probability for."],
+                              updated_features: Annotated[dict[str, float], "A python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values."])->str:
     """
-    A function to compute the change in the predicted price of the given subject using a trained machine learning model,
-    when the value of a speific feature is changed by a certain amount.
+    Uses a trained machine learning model to predict the updated probability of readmission for a hospital admission specified by its ID when some of its feature values change.
+    The parameter 'updated_features' is a python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values.
+    For example, if 'updated_features' is '{'GENDER': 1}', it means the binary feature column 'GENDER' changes to 1 so the gender of the patient in this admission changes from female to male.
     """
-    subject_data = prepare_model_input(file_name,subject)
-    original_feature = subject_data[feature].values[0]
-    with open('model.pkl', 'rb') as f:
-        model = pickle.load(f)
-    original_predicted = model.predict(subject_data.to_numpy())[0]
-    new_feature = original_feature + change
-    subject_data[feature] = new_feature
-    new_predicted = model.predict(subject_data.to_numpy())[0]
-    return f"When the feature {feature} of {subject} changes by {change} from {original_feature} to {new_feature}, the predicted value changes from {'%.2f' % (original_predicted)} to {'%.2f' % (new_predicted)} according to the ML model."
+    # Predict with original data
+    admission_data = prepare_model_input(admission_id)
+    X_old = admission_data.to_numpy()
+    with open('data/lgb.pkl', 'rb') as f:
+        model = joblib.load(f)
+    predicted_prob_old = model.predict_proba(X_old,verbose=-1)[0][1]
+    # Update feature values and predict with updated data
+    admission_data_new = admission_data.copy()
+    output = ""
+    for name,new_val in updated_features.items():
+        old_val = admission_data[name].values[0]
+        admission_data_new[name]=new_val
+        output += f"The feature '{name}' for admission {admission_id} changes from {old_val} to {new_val}.\n"
+    X_new = admission_data_new.to_numpy()
+    predicted_prob_new = model.predict_proba(X_new,verbose=-1)[0][1]
+    if predicted_prob_new > 0.5:
+        output += f"As a result, the predicted readmission probability changes from {'%.2f' % (predicted_prob_old)} to {'%.2f' % (predicted_prob_new)}, so the patient will likely be readmitted within 30 days."
+    else:
+        output += f"As a result, the predicted readmission probability changes from {'%.2f' % (predicted_prob_old)} to {'%.2f' % (predicted_prob_new)}, so the patient will not likely be readmitted within 30 days."
+    return output
