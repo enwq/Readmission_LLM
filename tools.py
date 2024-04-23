@@ -93,11 +93,15 @@ def make_readmission_prediction(admission_id: Annotated[int, "The ID of the hosp
 def make_updated_readmission_prediction(admission_id: Annotated[int, "The ID of the hospital admission to predict the updated readmission probability for."],
                               updated_features: Annotated[dict[str, float], "A python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values."])->str:
     """
-   When some of the feature values of a hospital admission specified by its ID are updated, this tool uses a trained machine learning model to predict the updated probability of readmission.
-   The required input parameters are 'admission_id' and 'updated_features'.
-   'admission_id' is an integer representing the ID of the hospital admission to predict the updated readmission probability for.
-   'updated_features' is a python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values.
-   For example, if 'updated_features' is '{'GENDER': 1}', it means the binary feature column 'GENDER' changes to 1 so the gender of the patient in this admission changes from female to male.
+    Use this tool to answer any question related to how the predicted probability of readmission according to the trained machine learning model would be updated for an admission specified by its ID if some features values of this admission are updated.
+    The required input parameters are 'admission_id' and 'updated_features'.
+    'admission_id' is an integer representing the ID of the hospital admission to predict the updated readmission probability for.
+    'updated_features' is a python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values.
+    An example usage of this tool is provided below.
+
+    Question: For the patient with admission ID 53631, how will the predicted probability of readmission change if this patient is a female and stays in hospital for 28 days?
+    Tool call: make_updated_readmission_prediction('admission_id':53631,'updated_features':{'GENDER':0,'LOS':28})
+    This tool then uses the trained machine learning model to predict readmission probability for the admission record with ID 53631 where the feature values for 'GENDER' and 'LOS' are updated to be 0 and 28 respectively.
     """
     # Predict with original data
     admission_data = prepare_model_input(admission_id)
@@ -120,10 +124,10 @@ def make_updated_readmission_prediction(admission_id: Annotated[int, "The ID of 
         output += f"As a result, the predicted readmission probability changes from {'%.2f' % (predicted_prob_old)} to {'%.2f' % (predicted_prob_new)}, so the patient will not likely be readmitted within 30 days."
     return output
 
-def compute_and_plot_shap_global_feature_importance():
+def compute_shap_values():
     """
-    This tool uses the SHAP (SHapley Additive exPlanations) algorithm to identify the 10 most important features used by a trained machine learning model for readmission prediction considering all available admission records from the data.
-    It then generates a bar plot for the feature importance values of the identified features.
+    A helper function to compute shap values for all testing records.
+    This function is not registered by the assistant.
     """
     # Load the data
     df = pd.read_csv("data/Testing_Data.csv",index_col=0)
@@ -137,20 +141,66 @@ def compute_and_plot_shap_global_feature_importance():
     # Compute SHAP values
     shap_values = explainer(X)
     shap_values.feature_names = feature_names
+    return shap_values
+
+def compute_and_plot_shap_global_feature_importance():
+    """
+    This tool uses the SHAP (SHapley Additive exPlanations) algorithm to identify the 10 most important features used by a trained machine learning model for readmission prediction considering all available admission records from the data.
+    It then generates a bar plot for the feature importance values of the identified features.
+    This tool does not require any input parameter.
+    """
+    # Compute SHAP values
+    shap_values = compute_shap_values()
     # Save the SHAP values in a dataframe
     shap_mean_abs = np.abs(shap_values.values).mean(0)
     shap_values_df = pd.DataFrame(shap_mean_abs,columns=["mean(|SHAP value|)"])
-    shap_values_df['feature'] = feature_names
+    shap_values_df['feature'] = shap_values.feature_names
     shap_values_df.sort_values('mean(|SHAP value|)',ascending=False,inplace=True,ignore_index=True)
     # Get the top 9 most important features + combined shap values from the remaining features
     top_9_feature_names = shap_values_df['feature'].values[:9]
-    top_9_shape_values = shap_values_df['mean(|SHAP value|)'].values[:9]
-    formatted_values = [float('%.3f' % (num)) for num in top_9_shape_values]
+    top_9_shap_values = shap_values_df['mean(|SHAP value|)'].values[:9]
+    formatted_values = [float('%.3f' % (num)) for num in top_9_shap_values]
     output = f"According to the SHAP (SHapley Additive exPlanations) algorithm, the top 9 most important features for readmission prediction are {top_9_feature_names}, with effects of {formatted_values} respectively.\n"
     remaining_shap_sum = np.sum(shap_values_df['mean(|SHAP value|)'].values[9:])
-    output += f"The remaining {len(feature_names)-9} features show a combined effect of {'%.3f' % (remaining_shap_sum)} for readmission prediction."
+    output += f"The remaining {len(shap_values.feature_names)-9} features show a combined effect of {'%.3f' % (remaining_shap_sum)} for readmission prediction."
     # Generate and save the bar plot
     shap.plots.bar(shap_values, max_display=10,show=False)
     plt.title('Top 10 most important features')
     plt.savefig('plot/global_top_10_features.png', bbox_inches = 'tight')
+    return output
+
+def compute_and_plot_shap_local_feature_importance(admission_id: Annotated[int, "The ID of the hospital admission to compute SHAP feature importance for."]):
+    """
+    This tool uses the SHAP (SHapley Additive exPlanations) algorithm to identify the top 10 features that contribute the most to the trained machine learning model for predicting readmission for the admission specified by its ID.
+    It then generates a waterfall plot to show the effects of the identified features on predicting readmission for the admission specified by its ID.
+    The required input parameters is 'admission_id'.
+    'admission_id' is an integer representing the ID of the hospital admission to compute SHAP feature importance for.
+    """
+    # Load data to get position of admission_id in the data
+    df = pd.read_csv("data/Testing_Data.csv",index_col=0)
+    idx = df.index.get_loc(admission_id)
+    # Compute SHAP values
+    shap_values = compute_shap_values()
+    # Get SHAP values for the admission
+    admission_shape_values = shap_values[idx]
+    # Save the shape values in a dataframe
+    admission_shap_values_df = pd.DataFrame(admission_shape_values.values,columns=["SHAP value"])
+    admission_shap_values_df['|SHAP value|'] = np.abs(admission_shape_values.values)
+    admission_shap_values_df['feature'] = admission_shape_values.feature_names
+    admission_shap_values_df['data'] = admission_shape_values.data
+    admission_shap_values_df.sort_values('|SHAP value|',ascending=False,inplace=True,ignore_index=True)
+    # Get the top 9 most important features + combined shap values from the remaining features
+    top_9_feature_names = admission_shap_values_df['feature'].values[:9]
+    top_9_shap_values = admission_shap_values_df['SHAP value'].values[:9]
+    top_9_feature_values = admission_shap_values_df['data'].values[:9]
+    formatted_shap_values = [float('%.3f' % (num)) for num in top_9_shap_values]
+    formatted_feature_values = [float('%.3f' % (num)) for num in top_9_feature_values]
+    output = f"According to the SHAP (SHapley Additive exPlanations) algorithm, the top 9 features that contribute the most to readmission prediction for admission {admission_id} are {top_9_feature_names}, with effects of {formatted_shap_values} respectively.\n"
+    output += f"The values of the top 9 features are {formatted_feature_values} respectively.\n"
+    remaining_shap_sum = np.sum(admission_shap_values_df['SHAP value'].values[9:])
+    output += f"The remaining {len(admission_shape_values.feature_names)-9} features show a combined effect of {'%.3f' % (remaining_shap_sum)} for readmission prediction."
+    # Generate and save the waterfall plot
+    shap.plots.waterfall(admission_shape_values, max_display=10,show=False)
+    plt.title(f'Top 10 most important features for admission {admission_id}')
+    plt.savefig('plot/local_top_10_features.png', bbox_inches = 'tight')
     return output

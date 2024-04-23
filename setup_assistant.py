@@ -55,11 +55,15 @@ tools = [{'type': 'function',
     },
     {'type': 'function',
       'function':{
-        'description': '''When some of the feature values of a hospital admission specified by its ID are updated, this tool uses a trained machine learning model to predict the updated probability of readmission.
+        'description': '''Use this tool to answer any question related to how the predicted probability of readmission according to the trained machine learning model would be updated for an admission specified by its ID if some features values of this admission are updated.
         The required input parameters are 'admission_id' and 'updated_features'.
         'admission_id' is an integer representing the ID of the hospital admission to predict the updated readmission probability for.
         'updated_features' is a python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values.
-        For example, if 'updated_features' is '{'GENDER': 1}', it means the binary feature column 'GENDER' changes to 1 so the gender of the patient in this admission changes from female to male.
+        An example usage of this tool is provided below.
+        
+        Question: For the patient with admission ID 53631, how will the predicted probability of readmission change if this patient is a female and stays in hospital for 28 days?
+        Tool call: make_updated_readmission_prediction('admission_id':53631,'updated_features':{'GENDER':0,'LOS':28})
+        This tool then uses the trained machine learning model to predict readmission probability for the admission record with ID 53631 where the feature values for 'GENDER' and 'LOS' are updated to be 0 and 28 respectively.
         ''',
         'name': 'make_updated_readmission_prediction',
         'parameters':{
@@ -73,7 +77,16 @@ tools = [{'type': 'function',
                     'type':'object',
                     'propertyNames':{
                         'type':'string',
-                        'description':'Name of the feature to update value for.'
+                        'description':'Name of the feature to update value for.',
+                        'enum': ['LOS', 'blood', 'circulatory', 'congenital', 'digestive', 'endocrine',
+                                 'genitourinary', 'infectious', 'injury', 'mental', 'muscular',
+                                 'neoplasms', 'nervous', 'respiratory', 'skin', 'supp1', 'supp2',
+                                 'symptoms_signs', 'GENDER', 'age', 'ICU', 'ICU_LOS', 'ADM_ELECTIVE',
+                                 'ADM_EMERGENCY', 'ADM_URGENT', 'INS_Government', 'INS_Medicaid',
+                                 'INS_Medicare', 'INS_Private', 'INS_Self Pay', 'ETH_ASIAN',
+                                 'ETH_BLACK/AFRICAN AMERICAN', 'ETH_HISPANIC/LATINO',
+                                 'ETH_OTHER/UNKNOWN', 'ETH_WHITE', 'MAR_MARRIED', 'MAR_SINGLE',
+                                 'MAR_UNKNOWN (DEFAULT)', 'MAR_WDS']
                     },
                     'additionalProperties':{
                         'type':'number',
@@ -99,8 +112,27 @@ tools = [{'type': 'function',
             'required':[]
         }
       }
+    },   
+    {'type': 'function',
+      'function':{
+        'description': '''This tool uses the SHAP (SHapley Additive exPlanations) algorithm to identify the top 10 features that contribute the most to the trained machine learning model for predicting readmission for the admission specified by its ID.
+        It then generates a waterfall plot to show the effects of the identified features on predicting readmission for the admission specified by its ID.
+        The required input parameters is 'admission_id'.
+        'admission_id' is an integer representing the ID of the hospital admission to compute SHAP feature importance for.
+        ''',
+        'name': 'compute_and_plot_shap_local_feature_importance',
+        'parameters':{
+            'type':'object',
+            'properties':{
+                'admission_id':{
+                    'type':'integer',
+                    'description':'The ID of the hospital admission to compute SHAP feature importance for.'
+                }
+            },
+            'required':['admission_id']
+        }
+      }
     }
-
  ]
 
 # Create assistant

@@ -1,7 +1,7 @@
 import streamlit as st
 from openai import AzureOpenAI
 import os
-from tools import get_admission_info,make_readmission_prediction,make_updated_readmission_prediction,compute_and_plot_shap_global_feature_importance
+from tools import get_admission_info,make_readmission_prediction,make_updated_readmission_prediction,compute_and_plot_shap_global_feature_importance,compute_and_plot_shap_local_feature_importance
 import json
 
 st.set_page_config(layout="wide")
@@ -13,7 +13,7 @@ def setup():
     api_version="2024-02-15-preview",
     azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     )
-    assistant = client.beta.assistants.retrieve("asst_SAHhfN6qoaZJvefq3AYrrO08")
+    assistant = client.beta.assistants.retrieve("asst_NGrBucYU76mKdKrKbNe01WUN")
     thread = client.beta.threads.create()
     return client,assistant,thread
 
@@ -23,7 +23,8 @@ function_dispatch_table = {
         "get_admission_info": get_admission_info,
         "make_readmission_prediction": make_readmission_prediction,
         "make_updated_readmission_prediction": make_updated_readmission_prediction,
-        "compute_and_plot_shap_global_feature_importance":compute_and_plot_shap_global_feature_importance
+        "compute_and_plot_shap_global_feature_importance":compute_and_plot_shap_global_feature_importance,
+        "compute_and_plot_shap_local_feature_importance":compute_and_plot_shap_local_feature_importance
 }
 
 def get_response(user_input):
@@ -59,9 +60,11 @@ def get_response(user_input):
             if func:
                 result = func(**tool_args)
                 tool_outputs.append({"tool_call_id": tool.id, "output": result})
-                # Get the global feature importance plot
+                # Get the local and global feature importance plot
                 if tool_name == "compute_and_plot_shap_global_feature_importance":
                     image_to_display = 'plot/global_top_10_features.png'
+                if tool_name == "compute_and_plot_shap_local_feature_importance":
+                    image_to_display = 'plot/local_top_10_features.png'
             else:
                 print(f"Function {tool_name} not found.")
         
