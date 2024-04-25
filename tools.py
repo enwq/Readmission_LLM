@@ -5,6 +5,10 @@ from typing import Annotated
 import shap
 import matplotlib.pyplot as plt
 import numpy as np
+from langchain.vectorstores import FAISS
+from langchain_openai import AzureOpenAIEmbeddings
+from openai import AzureOpenAI
+import os
 
 def get_admission_info(admission_id: Annotated[int, "The ID of the hospital admission to extract information for."], 
                      feature_lst: Annotated[list[str], "A list of feature columns to extract information for the admission."])->str:
@@ -309,3 +313,44 @@ def get_risk_score_model_information():
     with open('data/risk_score_model_card.txt', 'r') as file:
         model_card = file.read()
     return model_card
+
+def explain_risk_score_algorithm(question: Annotated[str, "The question about the risk score algorithm to answer."])->str:
+    """
+    Use this tool to answer any question related to the FasterRisk algorithm used by the risk score model. Ths tool extracts information from the academic paper about this algorithm to answer the question.
+    The required input parameters is 'question'.
+    'question' is a string representing the question about the risk score algorithm to answer.
+    """
+    # Load embedding database for the paper
+    embeddings = AzureOpenAIEmbeddings(
+            azure_deployment="MIMIC_text_embedding",
+            openai_api_version="2024-02-15-preview",
+        )
+    faiss_index = FAISS.load_local(f'data/FasterRisk_faiss_db', embeddings,allow_dangerous_deserialization=True)
+    
+    docs = faiss_index.similarity_search(question)
+
+    # Get the best matched page
+    full_text = docs[0].page_content
+
+    # Summarize the information
+    prompt = f"""Using the following information below, you are asked to answer the user's question.
+
+    {full_text}
+
+    Answer:"""
+    
+    client = client = AzureOpenAI(
+    api_key=os.getenv("AZURE_OPENAI_API_KEY"),  
+    api_version="2024-02-15-preview",
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    )
+    
+    response = client.chat.completions.create(
+        model="MIMIC",
+        messages=[
+            {"role": "system", "content": f"{prompt}"},
+            {"role": "user", "content": f"{question}"}
+        ]
+    )
+    answer = response.choices[0].message.content
+    return answer

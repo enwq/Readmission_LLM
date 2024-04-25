@@ -136,13 +136,32 @@ tools = [{'type': 'function',
     {'type': 'function',
       'function':{
         'description': '''This tool prints out the detailed information about the risk score model used for readmission prediction, including features used, scoring of each feature, and corresponding risk of readmission at each score level.
-        This tool does not require any input parameter..
+        This tool does not require any input parameter.
         ''',
         'name': 'get_risk_score_model_information',
         'parameters':{
             'type':'object',
             'properties':{},
             'required':[]
+        }
+      }
+    },
+    {'type': 'function',
+      'function':{
+        'description': '''Use this tool to answer any question related to the FasterRisk algorithm used by the risk score model. Ths tool extracts information from the academic paper about this algorithm to answer the question.
+        The required input parameters is 'question'.
+        'question' is a string representing the question about the risk score algorithm to answer.
+        ''',
+        'name': 'explain_risk_score_algorithm',
+        'parameters':{
+            'type':'object',
+            'properties':{
+                'question':{
+                    'type':'string',
+                    'description':'The question about the risk score algorithm to answer.'
+                }
+            },
+            'required':['question']
         }
       }
     }

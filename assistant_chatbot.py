@@ -4,7 +4,7 @@ import os
 from tools import get_admission_info
 from tools import make_readmission_prediction,make_updated_readmission_prediction
 from tools import compute_and_plot_shap_global_feature_importance,compute_and_plot_shap_local_feature_importance
-from tools import get_risk_score_model_information
+from tools import get_risk_score_model_information,explain_risk_score_algorithm
 import json
 
 st.set_page_config(page_title="Medical Assistant", layout="centered")
@@ -16,7 +16,7 @@ def setup():
     api_version="2024-02-15-preview",
     azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     )
-    assistant = client.beta.assistants.retrieve("asst_SGGRG974voQhNDRuTVA5DcSa")
+    assistant = client.beta.assistants.retrieve("asst_KPkQCShX6AQuSOrc9BE4VHDk")
     thread = client.beta.threads.create()
     return client,assistant,thread
 
@@ -28,7 +28,8 @@ function_dispatch_table = {
         "make_updated_readmission_prediction": make_updated_readmission_prediction,
         "compute_and_plot_shap_global_feature_importance":compute_and_plot_shap_global_feature_importance,
         "compute_and_plot_shap_local_feature_importance":compute_and_plot_shap_local_feature_importance,
-        "get_risk_score_model_information":get_risk_score_model_information
+        "get_risk_score_model_information":get_risk_score_model_information,
+        "explain_risk_score_algorithm":explain_risk_score_algorithm
 }
 
 def get_response(user_input):
