@@ -36,7 +36,7 @@ tools = [{'type': 'function',
     'required': ['admission_id', 'feature_lst']}}},
     {'type': 'function',
       'function':{
-        'description': '''This tool uses a trained machine learning model to predict the probability of readmission for a hospital admission specified by its ID based on all feature columns in the data.
+        'description': '''This tool uses a trained machine learning model as well as a risk score model to predict the probability of readmission for a hospital admission specified by its ID.
         The required input parameter is 'admission_id'.
         'admission_id' is an integer representing the ID of the hospital admission to predict readmission probability for.
         ''',
@@ -55,15 +55,15 @@ tools = [{'type': 'function',
     },
     {'type': 'function',
       'function':{
-        'description': '''Use this tool to answer any question related to how the predicted probability of readmission according to the trained machine learning model would be updated for an admission specified by its ID if some features values of this admission are updated.
+        'description': '''Use this tool to answer any question related to how the predicted probability of readmission according to the trained machine learning model as well as the risk score model would be updated for an admission specified by its ID if some features values of this admission are updated.
         The required input parameters are 'admission_id' and 'updated_features'.
         'admission_id' is an integer representing the ID of the hospital admission to predict the updated readmission probability for.
         'updated_features' is a python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values.
         An example usage of this tool is provided below.
-        
+
         Question: For the patient with admission ID 53631, how will the predicted probability of readmission change if this patient is a female and stays in hospital for 28 days?
-        Tool call: make_updated_readmission_prediction('admission_id':53631,'updated_features':{'GENDER':0,'LOS':28})
-        This tool then uses the trained machine learning model to predict readmission probability for the admission record with ID 53631 where the feature values for 'GENDER' and 'LOS' are updated to be 0 and 28 respectively.
+        Tool call: make_updated_readmission_prediction('admission_id':53631,'updated_features':{'GENDER':0.0,'LOS':28.0})
+        This tool then uses the trained machine learning model and the risk score model to predict readmission probability for the admission record with ID 53631 where the feature values for 'GENDER' and 'LOS' are updated to be 0.0 and 28.0 respectively.
         ''',
         'name': 'make_updated_readmission_prediction',
         'parameters':{
@@ -130,6 +130,19 @@ tools = [{'type': 'function',
                 }
             },
             'required':['admission_id']
+        }
+      }
+    },
+    {'type': 'function',
+      'function':{
+        'description': '''This tool prints out the detailed information about the risk score model used for readmission prediction, including features used, scoring of each feature, and corresponding risk of readmission at each score level.
+        This tool does not require any input parameter..
+        ''',
+        'name': 'get_risk_score_model_information',
+        'parameters':{
+            'type':'object',
+            'properties':{},
+            'required':[]
         }
       }
     }

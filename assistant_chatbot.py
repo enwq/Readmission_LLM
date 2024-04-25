@@ -1,10 +1,13 @@
 import streamlit as st
 from openai import AzureOpenAI
 import os
-from tools import get_admission_info,make_readmission_prediction,make_updated_readmission_prediction,compute_and_plot_shap_global_feature_importance,compute_and_plot_shap_local_feature_importance
+from tools import get_admission_info
+from tools import make_readmission_prediction,make_updated_readmission_prediction
+from tools import compute_and_plot_shap_global_feature_importance,compute_and_plot_shap_local_feature_importance
+from tools import get_risk_score_model_information
 import json
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="centered")
 @st.cache_resource
 def setup():
     # Initialize the client
@@ -13,7 +16,7 @@ def setup():
     api_version="2024-02-15-preview",
     azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     )
-    assistant = client.beta.assistants.retrieve("asst_NGrBucYU76mKdKrKbNe01WUN")
+    assistant = client.beta.assistants.retrieve("asst_SGGRG974voQhNDRuTVA5DcSa")
     thread = client.beta.threads.create()
     return client,assistant,thread
 
@@ -24,7 +27,8 @@ function_dispatch_table = {
         "make_readmission_prediction": make_readmission_prediction,
         "make_updated_readmission_prediction": make_updated_readmission_prediction,
         "compute_and_plot_shap_global_feature_importance":compute_and_plot_shap_global_feature_importance,
-        "compute_and_plot_shap_local_feature_importance":compute_and_plot_shap_local_feature_importance
+        "compute_and_plot_shap_local_feature_importance":compute_and_plot_shap_local_feature_importance,
+        "get_risk_score_model_information":get_risk_score_model_information
 }
 
 def get_response(user_input):
@@ -109,6 +113,6 @@ st.write("Your input:",user_input)
 if user_input:
     result,image_to_display = get_response(user_input)
     st.header("Assistant")
-    st.text(result)
+    st.write(result)
     if image_to_display:
         st.image(image_to_display)

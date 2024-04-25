@@ -73,56 +73,152 @@ def prepare_model_input(admission_id):
     features = df.loc[df.index==admission_id,df.columns[:-1]].astype(float)
     return features
 
+def prepare_risk_input(admission_id):
+    """
+    A helper function to prepare the data from an admission as input to the risk score model for readmission prediction.
+    This function is not registered by the assistant.
+    """
+    df = pd.read_csv("data/Testing_Data_Discretized.csv",index_col=0)
+    features_df = df.drop(columns=['Readmission'])
+    features = features_df.loc[features_df.index==admission_id].astype(float)
+    return features
+
 def make_readmission_prediction(admission_id: Annotated[int, "The ID of the hospital admission to predict readmission probability for."])->str:
     """
-   This tool uses a trained machine learning model to predict the probability of readmission for a hospital admission specified by its ID based on all feature columns in the data.
+   This tool uses a trained machine learning model as well as a risk score model to predict the probability of readmission for a hospital admission specified by its ID.
    The required input parameter is 'admission_id'.
    'admission_id' is an integer representing the ID of the hospital admission to predict readmission probability for.
     """
+    # Prediction with ML model
     admission_data = prepare_model_input(admission_id)
     X = admission_data.to_numpy()
     with open('data/lgb.pkl', 'rb') as f:
         model = joblib.load(f)
-    predicted_prob = model.predict_proba(X,verbose=-1)[0][1]
-    if predicted_prob > 0.5:
-        return f"The machine learning model predicts a readmission probability of {'%.2f' % (predicted_prob)} for admission {admission_id}, so the patient will likely be readmitted within 30 days."
-    else:
-        return f"The machine learning model predicts a readmission probability of {'%.2f' % (predicted_prob)} for admission {admission_id}, so the patient will not likely be readmitted within 30 days."
+    predicted_prob = model.predict_proba(X,verbose=-1)[0][1]*100
+    ml_output = f"The machine learning model predicts a readmission probability of {'%.1f' % (predicted_prob)}% for admission {admission_id}.\n"
+    # Prediction with risk score model
+    admission_data_risk = prepare_risk_input(admission_id)
+    X_risk = admission_data_risk.to_numpy()
+    with open('data/faster_risk.pkl', 'rb') as f:
+        risk_model = joblib.load(f)
+    predicted_risk = risk_model.predict_prob(X_risk)[0]*100
+    risk_output = f"The risk score model predicts a readmission risk of {'%.1f' % (predicted_risk)}% for admission {admission_id}."
+    return ml_output+risk_output
     
+def handle_mutual_exclusive_feature_update(feature_name):
+    '''
+    Handles feature update for mutually exclusive binary columns, i.e. admission type, insurance type, ethnicity, and marital status.
+    feature_name is the column to be updated as 1.
+    This function is not registered by the assistant.
+    '''
+    adm_features = ['ADM_ELECTIVE','ADM_EMERGENCY','ADM_URGENT']
+    ins_features = ['INS_Government', 'INS_Medicaid', 'INS_Medicare', 'INS_Private', 'INS_Self Pay']
+    eth_features = ['ETH_ASIAN', 'ETH_BLACK/AFRICAN AMERICAN', 'ETH_HISPANIC/LATINO', 'ETH_OTHER/UNKNOWN', 'ETH_WHITE']
+    mar_features = ['MAR_MARRIED', 'MAR_SINGLE','MAR_UNKNOWN (DEFAULT)', 'MAR_WDS']
+    # Return the feature names to be updated as 0 to maintain mutual exclusion
+    if feature_name.startswith('ADM'):
+        return [f for f in adm_features if f!=feature_name]
+    elif feature_name.startswith('INS'):
+        return [f for f in ins_features if f!=feature_name]
+    elif feature_name.startswith('ETH'):
+        return [f for f in eth_features if f!=feature_name]
+    else:
+        return [f for f in mar_features if f!=feature_name]
+    
+def handle_discretized_feature_update(feature_name,feature_value):
+    '''
+    Handles feature update for continuous features, i.e. LOS, age, ICU_LOS.
+    Adjust their corresponding discretized feature columns correspondingly.
+    Returns the names of columns to update and the updated values.
+    '''
+    # Load the fitted discretizer and corresponding feature names
+    with open(f'data/{feature_name}_discretizer.pkl', 'rb') as f:
+        discretizer = joblib.load(f)
+    with open(f'data/{feature_name}_discretized_names.pkl', 'rb') as f:
+        discretized_names = joblib.load(f)
+    # Discretize the updated feature value
+    new_values = discretizer.transform(np.array(feature_value).reshape((-1,1)))[0]
+    return new_values,discretized_names
 
 def make_updated_readmission_prediction(admission_id: Annotated[int, "The ID of the hospital admission to predict the updated readmission probability for."],
                               updated_features: Annotated[dict[str, float], "A python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values."])->str:
     """
-    Use this tool to answer any question related to how the predicted probability of readmission according to the trained machine learning model would be updated for an admission specified by its ID if some features values of this admission are updated.
+    Use this tool to answer any question related to how the predicted probability of readmission according to the trained machine learning model as well as the risk score model would be updated for an admission specified by its ID if some features values of this admission are updated.
     The required input parameters are 'admission_id' and 'updated_features'.
     'admission_id' is an integer representing the ID of the hospital admission to predict the updated readmission probability for.
     'updated_features' is a python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values.
     An example usage of this tool is provided below.
 
     Question: For the patient with admission ID 53631, how will the predicted probability of readmission change if this patient is a female and stays in hospital for 28 days?
-    Tool call: make_updated_readmission_prediction('admission_id':53631,'updated_features':{'GENDER':0,'LOS':28})
-    This tool then uses the trained machine learning model to predict readmission probability for the admission record with ID 53631 where the feature values for 'GENDER' and 'LOS' are updated to be 0 and 28 respectively.
+    Tool call: make_updated_readmission_prediction('admission_id':53631,'updated_features':{'GENDER':0.0,'LOS':28.0})
+    This tool then uses the trained machine learning model and the risk score model to predict readmission probability for the admission record with ID 53631 where the feature values for 'GENDER' and 'LOS' are updated to be 0.0 and 28.0 respectively.
     """
+    # ML model prediction
     # Predict with original data
     admission_data = prepare_model_input(admission_id)
     X_old = admission_data.to_numpy()
     with open('data/lgb.pkl', 'rb') as f:
         model = joblib.load(f)
-    predicted_prob_old = model.predict_proba(X_old,verbose=-1)[0][1]
+    predicted_prob_old = model.predict_proba(X_old,verbose=-1)[0][1]*100
     # Update feature values and predict with updated data
     admission_data_new = admission_data.copy()
-    output = ""
+    ml_output = ""
     for name,new_val in updated_features.items():
         old_val = admission_data[name].values[0]
         admission_data_new[name]=new_val
-        output += f"The feature '{name}' for admission {admission_id} changes from {old_val} to {new_val}.\n"
+        # Need to uniform the updates for ICU and ICU_LOS
+        if name=="ICU" and new_val==0.0:
+            admission_data_new["ICU_LOS"]=0.0
+        if name=="ICU_LOS" and new_val==0.0:
+            admission_data_new["ICU"]=0.0
+        if name=="ICU_LOS" and new_val>0.0:
+            admission_data_new["ICU"]=1.0
+        # Adjust correspondingly for mutually exclusive columns
+        if (name.startswith('ADM') or name.startswith('INS') or name.startswith('ETH') or name.startswith('MAR')) and new_val==1.0:
+            columns_to_adjust = handle_mutual_exclusive_feature_update(name)
+            admission_data_new[columns_to_adjust]=0.0
+        ml_output += f"The feature '{name}' for admission {admission_id} changes from {old_val} to {new_val}.\n"
     X_new = admission_data_new.to_numpy()
-    predicted_prob_new = model.predict_proba(X_new,verbose=-1)[0][1]
-    if predicted_prob_new > 0.5:
-        output += f"As a result, the predicted readmission probability changes from {'%.2f' % (predicted_prob_old)} to {'%.2f' % (predicted_prob_new)}, so the patient will likely be readmitted within 30 days."
-    else:
-        output += f"As a result, the predicted readmission probability changes from {'%.2f' % (predicted_prob_old)} to {'%.2f' % (predicted_prob_new)}, so the patient will not likely be readmitted within 30 days."
-    return output
+    predicted_prob_new = model.predict_proba(X_new,verbose=-1)[0][1]*100
+    ml_output += f"As a result, the predicted readmission probability from the machine learning model changes from {'%.1f' % (predicted_prob_old)}% to {'%.1f' % (predicted_prob_new)}%.\n"
+    # Risk score model prediction
+    # Predict with original data
+    admission_data_risk = prepare_risk_input(admission_id)
+    X_risk_old = admission_data_risk.to_numpy()
+    with open('data/faster_risk.pkl', 'rb') as f:
+        risk_model = joblib.load(f)
+    predicted_risk_old = risk_model.predict_prob(X_risk_old)[0]*100
+    # Update feature values and predict with updated data
+    admission_data_risk_new = admission_data_risk.copy()
+    for name,new_val in updated_features.items():
+        # Adjust continuous features
+        if name in ['LOS','age','ICU_LOS']:
+            discretized_values,discretized_names = handle_discretized_feature_update(name,new_val)
+            for v,n in zip(discretized_values,discretized_names):
+                admission_data_risk_new[n]=v
+            # Need to uniform the updates for ICU and ICU_LOS
+            if name=="ICU_LOS" and new_val==0.0:
+                admission_data_risk_new["ICU"]=0.0
+            if name=="ICU_LOS" and new_val>0.0:
+                admission_data_risk_new["ICU"]=1.0
+        # Adjust binary features
+        else:
+            # Need to uniform the updates for ICU and ICU_LOS
+            if name=="ICU" and new_val==0.0:
+                discretized_values,discretized_names = handle_discretized_feature_update("ICU_LOS",0.0)
+                for v,n in zip(discretized_values,discretized_names):
+                    admission_data_risk_new[n]=v
+            # Adjust correspondingly for mutually exclusive columns
+            admission_data_risk_new[name]=new_val
+            # Adjust correspondingly for mutually exclusive columns
+            if (name.startswith('ADM') or name.startswith('INS') or name.startswith('ETH') or name.startswith('MAR')) and new_val==1.0:
+                columns_to_adjust = handle_mutual_exclusive_feature_update(name)
+                admission_data_risk_new[columns_to_adjust]=0.0
+    risk_output = ""
+    X_risk_new = admission_data_risk_new.to_numpy()
+    predicted_risk_new = risk_model.predict_prob(X_risk_new)[0]*100
+    risk_output += f"The predicted readmission probability from the risk score model changes from {'%.1f' % (predicted_risk_old)}% to {'%.1f' % (predicted_risk_new)}%."
+    return ml_output+risk_output
 
 def compute_shap_values():
     """
@@ -143,7 +239,7 @@ def compute_shap_values():
     shap_values.feature_names = feature_names
     return shap_values
 
-def compute_and_plot_shap_global_feature_importance():
+def compute_and_plot_shap_global_feature_importance()->str:
     """
     This tool uses the SHAP (SHapley Additive exPlanations) algorithm to identify the 10 most important features used by a trained machine learning model for readmission prediction considering all available admission records from the data.
     It then generates a bar plot for the feature importance values of the identified features.
@@ -169,7 +265,7 @@ def compute_and_plot_shap_global_feature_importance():
     plt.savefig('plot/global_top_10_features.png', bbox_inches = 'tight')
     return output
 
-def compute_and_plot_shap_local_feature_importance(admission_id: Annotated[int, "The ID of the hospital admission to compute SHAP feature importance for."]):
+def compute_and_plot_shap_local_feature_importance(admission_id: Annotated[int, "The ID of the hospital admission to compute SHAP feature importance for."])->str:
     """
     This tool uses the SHAP (SHapley Additive exPlanations) algorithm to identify the top 10 features that contribute the most to the trained machine learning model for predicting readmission for the admission specified by its ID.
     It then generates a waterfall plot to show the effects of the identified features on predicting readmission for the admission specified by its ID.
@@ -204,3 +300,12 @@ def compute_and_plot_shap_local_feature_importance(admission_id: Annotated[int, 
     plt.title(f'Top 10 most important features for admission {admission_id}')
     plt.savefig('plot/local_top_10_features.png', bbox_inches = 'tight')
     return output
+
+def get_risk_score_model_information():
+    '''
+    This tool prints out the detailed information about the risk score model used for readmission prediction, including features used, scoring of each feature, and corresponding risk of readmission at each score level.
+    This tool does not require any input parameter.
+    '''
+    with open('data/risk_score_model_card.txt', 'r') as file:
+        model_card = file.read()
+    return model_card
