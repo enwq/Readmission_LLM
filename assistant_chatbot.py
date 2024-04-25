@@ -7,7 +7,7 @@ from tools import compute_and_plot_shap_global_feature_importance,compute_and_pl
 from tools import get_risk_score_model_information
 import json
 
-st.set_page_config(layout="centered")
+st.set_page_config(page_title="Medical Assistant", layout="centered")
 @st.cache_resource
 def setup():
     # Initialize the client
@@ -100,7 +100,7 @@ def submit():
    st.session_state.user_input = st.session_state.query
    st.session_state.query = ""
 
-st.title("Chatbot")
+st.title("Doctor")
 
 # Text input box 
 st.text_input("Enter text:",key="query",on_change=submit)
@@ -112,7 +112,7 @@ st.write("Your input:",user_input)
 # Generate response for user input
 if user_input:
     result,image_to_display = get_response(user_input)
-    st.header("Assistant")
+    st.header("Medical Assistant")
     st.write(result)
     if image_to_display:
         st.image(image_to_display)
