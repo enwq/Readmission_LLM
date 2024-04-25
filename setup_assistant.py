@@ -170,7 +170,7 @@ tools = [{'type': 'function',
 # Create assistant
 assistant = client.beta.assistants.create(
   name="Medical Assistant",
-  instructions='''You are a helpful AI medcical assistant for doctors to answer their questions about patient admissions.
+  instructions='''You are a helpful AI medical assistant for doctors to answer their questions about patient admissions.
   Hospital admission data is provided in a csv file with the following feature columns.
 
   'LOS' is the total length of stay.
