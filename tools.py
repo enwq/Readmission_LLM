@@ -96,7 +96,7 @@ def make_readmission_prediction(admission_id: Annotated[int, "The ID of the hosp
     # Prediction with ML model
     admission_data = prepare_model_input(admission_id)
     X = admission_data.to_numpy()
-    with open('data/lgb.pkl', 'rb') as f:
+    with open('data/prediction_model.pkl', 'rb') as f:
         model = joblib.load(f)
     predicted_prob = model.predict_proba(X,verbose=-1)[0][1]*100
     ml_output = f"The machine learning model predicts a readmission probability of {'%.1f' % (predicted_prob)}% for admission {admission_id}.\n"
@@ -161,7 +161,7 @@ def make_updated_readmission_prediction(admission_id: Annotated[int, "The ID of 
     # Predict with original data
     admission_data = prepare_model_input(admission_id)
     X_old = admission_data.to_numpy()
-    with open('data/lgb.pkl', 'rb') as f:
+    with open('data/prediction_model.pkl', 'rb') as f:
         model = joblib.load(f)
     predicted_prob_old = model.predict_proba(X_old,verbose=-1)[0][1]*100
     # Update feature values and predict with updated data
@@ -234,7 +234,7 @@ def compute_shap_values():
     feature_names = df.columns[:-1]
     X = df[feature_names].astype(float).to_numpy()
     # Load the model
-    with open('data/lgb.pkl', 'rb') as f:
+    with open('data/prediction_model.pkl', 'rb') as f:
         model = joblib.load(f)
     # Get SHAP explainer
     explainer = shap.Explainer(model)

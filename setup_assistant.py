@@ -179,7 +179,7 @@ assistant = client.beta.assistants.create(
   'congenital' equals to 1 if the patient is diagnosed with congenital anomalies and 0 otherwise.
   'digestive' equals to 1 if the patient is diagnosed with digestive system diseases and 0 otherwise.
   'endocrine' equals to 1 if the patient is diagnosed with endocrine, nutritional and metabolic diseases, and immunity disorders and 0 otherwise.
-  'genitourinary' equals to 1 if the patient is diagnosed with henitourinary system diseases and 0 otherwise.
+  'genitourinary' equals to 1 if the patient is diagnosed with genitourinary system diseases and 0 otherwise.
   'infectious' equals to 1 if the patient is diagnosed with infectious and parasitic diseases and 0 otherwise.
   'injury' equals to 1 if the patient is diagnosed with injury and poisoning and 0 otherwise.
   'mental' equals to 1 if the patient is diagnosed with mental disorders and 0 otherwise.
