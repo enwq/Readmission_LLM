@@ -141,8 +141,12 @@ def handle_discretized_feature_update(feature_name,feature_value):
     with open(f'data/{feature_name}_discretized_names.pkl', 'rb') as f:
         discretized_names = joblib.load(f)
     # Discretize the updated feature value
-    new_values = discretizer.transform(np.array(feature_value).reshape((-1,1)))[0]
-    return new_values,discretized_names
+    p = len(discretized_names)-1
+    one_hot = np.zeros(p)
+    bin_idx = int(discretizer.transform(np.array(feature_value).reshape((-1,1)))[0])
+    if bin_idx!=p:
+        one_hot[bin_idx:]=1.0
+    return one_hot,discretized_names[:-1]
 
 def make_updated_readmission_prediction(admission_id: Annotated[int, "The ID of the hospital admission to predict the updated readmission probability for."],
                               updated_features: Annotated[dict[str, float], "A python dictionary that provides the updated feature values, with the feature names as keys and the updated feature values as values."])->str:
